@@ -72,4 +72,17 @@ async function loadContent(index, slide, audio, overlay) {
         // If audio is available, use it
         audio.src = data.audio_url;
     }
+    else {
+        // Otherwise generate audio for the slide
+        overlay.style.display = "block";
+        audio_url = await getAudio(index);
+        audio.src = audio_url;
+        overlay.style.display = "none";
+    }
+}
+
+async function getAudio(index) {
+    var response = await fetch(`/get_audio/${index}`);
+    var data = await response.json();
+    return data.audio_url;
 }

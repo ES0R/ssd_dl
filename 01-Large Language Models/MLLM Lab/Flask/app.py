@@ -1,5 +1,6 @@
 import os
 from flask import Flask, render_template, jsonify
+from helpers import *
 
 app = Flask(__name__)
 
@@ -32,12 +33,43 @@ def get_slide(index):
         image_name = images[index]
         image_url = f'{IMAGE_DIR}/{image_name}'
 
+        root, _ = os.path.splitext(image_name)
+        audio_name = root + '.mp3'
+        audio_url = f'{AUDIO_DIR}/{audio_name}'
+
+        if not os.path.exists(audio_url):
+            audio_url = ''
+
         return jsonify({
             'image_url': image_url,
-            'audio_url': ''
+            'audio_url': audio_url    
         })
 
     return jsonify({
         'image_url': '',
         'audio_url': ''
     })
+
+@app.route('/get_audio/<int:index>')
+def get_audio(index):
+    if index >= 0 and index < len(images):
+        image_name = images[index]
+        root, _ = os.path.splitext(image_name)
+        audio_name = root + '.mp3'
+        audio_url = f'{AUDIO_DIR}/{audio_name}'
+
+        # Return the URL if the audio file exists
+        if os.path.exists(audio_url):
+            return jsonify({'audio_url': audio_url})
+
+        # Use GPT-4o to generate a narration for the image
+        image_url = f'{IMAGE_DIR}/{image_name}'
+        text = generate_narration(image_url)
+
+        # Use TTS to generate audio
+        generate_audio(text, audio_url)
+			
+        # Return the audio URL
+        return jsonify({'audio_url': audio_url})
+	
+    return jsonify({'audio_url': ''})

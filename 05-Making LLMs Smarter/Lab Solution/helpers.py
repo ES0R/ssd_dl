@@ -3,6 +3,9 @@ import base64, sqlite3, json, re, os
 
 IMAGE_PATH = 'Data/visual.png'
 
+API_KEY = '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'
+MODEL = 'gpt-4-turbo'
+
 def answer_question_textually(input):
     print('Calling text2sql()')
     sql = text2sql(input)
@@ -210,10 +213,10 @@ def text2sql(text):
         }
     ]
 
-    client = OpenAI()
+    client = OpenAI(api_key=API_KEY)
     
     response = client.chat.completions.create(
-        model='gpt-4o-mini',
+        model=MODEL,
         messages=messages,
         temperature=0
     )
@@ -261,10 +264,10 @@ def text2code(text, data):
         }
     ]
 
-    client = OpenAI()
+    client = OpenAI(api_key=API_KEY)
     
     response = client.chat.completions.create(
-        model='gpt-4o-mini',
+        model=MODEL,
         messages=messages,
         temperature=0
     )
@@ -314,10 +317,10 @@ def chat(input, messages=None):
     messages.append(message)
 
     # Call the LLM
-    client = OpenAI()
+    client = OpenAI(api_key=API_KEY)
     
     response = client.chat.completions.create(
-        model='gpt-4o-mini',
+        model=MODEL,
         messages=messages,
         tools=[textual_response_tool, data_visualization_tool]
     )
@@ -345,7 +348,7 @@ def chat(input, messages=None):
     
         # Pass the function output to the LLM
         response = client.chat.completions.create(
-            model='gpt-4o-mini',
+            model=MODEL,
             messages=messages
         )
     

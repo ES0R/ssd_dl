@@ -1,6 +1,8 @@
 from openai import OpenAI
 import base64, sqlite3, json, re, os
 
+IMAGE_PATH = 'Data/visual.png'
+
 def answer_question_textually(input):
     print('Calling text2sql()')
     sql = text2sql(input)
@@ -18,6 +20,41 @@ textual_response_tool = {
             lend itself to a graphical response. Examples include "How many
             employees does Chinook have" and "How much revenue did Chinook
             generate in 2011."
+            ''',
+        'parameters': {
+            'type': 'object',
+            'properties': {
+                'input': {
+                    'type': 'string',
+                    'description': 'Input from the user'
+                }
+            },
+            'required': ['input']
+        }
+    }
+}
+
+def answer_question_visually(input):
+    sql = text2sql(input)
+    result = execute_sql(sql)
+    print('Calling text2code()')
+    code = text2code(input, json.dumps(result))
+    print('Executing code')
+    exec(code) # Execute the LLM-generated code
+    url = get_data_url(IMAGE_PATH)
+    os.remove(IMAGE_PATH)
+    return url
+
+data_visualization_tool = {
+    'type': 'function',
+    'function': {
+        'name': 'answer_question_visually',
+        'description': '''
+            Queries the Chinook database to answer a question and provide a
+            visual response in the form of a chart or graph. Only call this
+            function if the question lends itself to a graphical response.
+            Examples include "Plot sales of Chinook's 10 most popular albums"
+            and "Show me how many albums were sold in 2010, 2011, and 2012."
             ''',
         'parameters': {
             'type': 'object',
@@ -173,7 +210,7 @@ def text2sql(text):
         }
     ]
 
-    client = OpenAI()
+    client = OpenAI(api_key='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')
     
     response = client.chat.completions.create(
         model='gpt-4o-mini',
@@ -193,6 +230,56 @@ def execute_sql(sql):
     cursor.execute(sql)
     rows = cursor.fetchall()
     return rows
+
+def text2code(text, data):
+    prompt = f'''
+        Generate Python code that uses Matplotlib and optionally Seaborn to generate
+        a chart or graph in response to the prompt below using the date below. Return
+        the code only. Do not use markdown formatting, and do not explain the code.
+        Do not generate code that could be harmful to the computer it's running on,
+        and do not include a call to plt.show(). Include code to save the image that
+        is generated as a PNG file using the path "{IMAGE_PATH}". Include a call to
+        plt.close() at the end, and a call to matplotlib.use('Agg') at the beginning.
+        Also include code to suppress any warnings.
+
+        PROMPT: {text}
+
+        DATA: {data}
+        '''
+
+    messages = [
+        {
+            'role': 'system',
+            'content': '''
+                You are a data expert who can respond to questions by generating
+                code that creates colorful charts and graphs.
+                '''
+        },
+        {
+            'role': 'user',
+            'content': prompt
+        }
+    ]
+
+    client = OpenAI(api_key='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')
+    
+    response = client.chat.completions.create(
+        model='gpt-4o-mini',
+        messages=messages,
+        temperature=0
+    )
+
+    code = response.choices[0].message.content
+
+    # Strip markdown characters if present
+    pattern = r'^```[\w]*\n|\n```$'
+    return re.sub(pattern, '', code, flags=re.MULTILINE)
+
+def get_data_url(image_path):
+    with open(image_path, 'rb') as img_file:
+        encoded_string = base64.b64encode(img_file.read()).decode('utf-8')
+
+    return f'data:image/png;base64,{encoded_string}'
 
 def chat(input, messages=None):
     if not messages:
@@ -227,12 +314,12 @@ def chat(input, messages=None):
     messages.append(message)
 
     # Call the LLM
-    client = OpenAI()
+    client = OpenAI(api_key='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')
     
     response = client.chat.completions.create(
         model='gpt-4o-mini',
         messages=messages,
-        tools=[textual_response_tool]
+        tools=[textual_response_tool, data_visualization_tool]
     )
     
     # If one or more tool calls are required, execute them
@@ -246,6 +333,13 @@ def chat(input, messages=None):
                 output = answer_question_textually(input)
                 messages.append({ 'role': 'function', 'name': function_name, 'content': output })
 
+            elif function_name == 'answer_question_visually':
+                input = json.loads(tool_call.function.arguments)['input']
+                print(f'Calling answer_question_visually()')
+                output = answer_question_visually(input)
+                messages.append({ 'role': 'assistant', 'content': output })
+                return messages # Early exit with image URL
+
             else:
                 raise Exception('Invalid function name')
     
@@ -257,4 +351,4 @@ def chat(input, messages=None):
     
     # Return a message thread containing the LLM's response
     messages.append({ 'role': 'assistant', 'content': response.choices[0].message.content })
-    return messages
+    return "test"##messages

@@ -14,7 +14,7 @@ def ask_assistant():
     try:
         input = request.args.get('input')
         messages = chat(input) # Call the LLM
-        return messages[-1]['content']
+        return 'test'#messages[-1]['content']
 
     except Exception as e:
         return "I'm sorry, but something went wrong."

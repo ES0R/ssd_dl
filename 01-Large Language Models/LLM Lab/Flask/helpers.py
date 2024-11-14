@@ -31,8 +31,9 @@ def score_candidate(candidate, job):
             'content': prompt
         }
     ]
-
-    client = OpenAI()
+    
+    api_key = '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'
+    client = OpenAI(api_key=api_key)
 
     response = client.chat.completions.create(
         model='gpt-4o-mini',
@@ -75,9 +76,9 @@ def explain_score(candidate, job, score):
             'content': prompt
         }
     ]
+    api_key = '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'
+    client = OpenAI(api_key=api_key)
 
-    client = OpenAI()
-    
     response = client.chat.completions.create(
         model='gpt-4o-mini',
         messages=messages,

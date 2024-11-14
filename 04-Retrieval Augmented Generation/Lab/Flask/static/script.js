@@ -11,11 +11,19 @@ $(function() {
             var answer = $("#answer");
             answer.text("");
             
+
             // Submit the question
             var response = await fetch('/answer?query=' + query);
+            var reader = response.body.getReader();
+            var decoder = new TextDecoder("utf-8");
 
-            // Show the response
-            answer.append((await response.text()).replaceAll("\n", "<br />"));
+            // Display the streaming response
+            while (true) {
+                var { done, value } = await reader.read();
+                if (done) break;
+                var chunk = decoder.decode(value, { stream: true });
+                answer.append(chunk.replaceAll("\n", "<br />"));
+            }
         }
     });
 });

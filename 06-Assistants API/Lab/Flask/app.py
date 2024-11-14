@@ -3,7 +3,9 @@ from openai import OpenAI
 from flask import Flask, render_template, request, Response, stream_with_context, make_response
 from helpers import *
 
-client = OpenAI()
+API_KEY = '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'
+
+client = OpenAI(api_key=)
 
 assistant = get_or_create_assistant(
     client,
